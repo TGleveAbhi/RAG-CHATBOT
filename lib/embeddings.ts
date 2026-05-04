@@ -1,11 +1,10 @@
 // lib/embeddings.ts
-import type { FeatureExtractionPipeline } from "@xenova/transformers";
+import { pipeline } from "@xenova/transformers";
 
-let embedder: FeatureExtractionPipeline | null = null;
+let embedder: any = null;
 
 async function getEmbedder() {
   if (!embedder) {
-    const { pipeline } = await import("@xenova/transformers");
     embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
   }
   return embedder;
