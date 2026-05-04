@@ -1,35 +1,33 @@
-// lib/embeddings.ts
+const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 
-let embedder: any = null;
+async function fetchEmbeddings(inputs: string[]): Promise<number[][]> {
+  const response = await fetch("https://openrouter.ai/api/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: EMBEDDING_MODEL,
+      input: inputs,
+    }),
+  });
 
-async function getEmbedder() {
-  if (!embedder) {
-    const { pipeline } = await import("@xenova/transformers"); // ✅ dynamic import
-    embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
-  }
-  return embedder;
-}
-
-async function fetchEmbedding(inputs: string | string[]): Promise<number[][]> {
-  const model = await getEmbedder();
-  const texts = Array.isArray(inputs) ? inputs : [inputs];
-  const results: number[][] = [];
-
-  for (const text of texts) {
-    const output = await model(text, { pooling: "mean", normalize: true });
-    results.push(Array.from(output.data) as number[]);
+  if (!response.ok) {
+    throw new Error(`Embedding API error: ${response.statusText}`);
   }
 
-  return results;
+  const data = await response.json();
+  return data.data.map((item: { embedding: number[] }) => item.embedding);
 }
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   const input = text.replaceAll("\n", " ");
-  const result = await fetchEmbedding(input);
-  return result[0];
+  const results = await fetchEmbeddings([input]);
+  return results[0];
 }
 
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   const inputs = texts.map((t) => t.replaceAll("\n", " "));
-  return await fetchEmbedding(inputs);
+  return await fetchEmbeddings(inputs);
 }

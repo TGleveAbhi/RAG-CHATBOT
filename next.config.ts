@@ -1,10 +1,5 @@
 const nextConfig = {
-  serverExternalPackages: [
-    "@xenova/transformers",
-    "sharp",
-    "onnxruntime-node",
-    "unpdf",
-  ],
+  serverExternalPackages: ["sharp", "onnxruntime-node", "unpdf"],
   turbopack: {},
 };
 
