@@ -1,16 +1,12 @@
-import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { searchDocuments } from "@/lib/search";
 
-const client = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+export const dynamic = "force-dynamic";
 
 const FREE_MODELS = [
-  "openrouter/auto", //  BEST (auto picks working model)
-  "meta-llama/llama-3-8b-instruct", //  paid but stable
-  "mistralai/mistral-small", //  stable
+  "openrouter/auto",
+  "meta-llama/llama-3-8b-instruct",
+  "mistralai/mistral-small",
 ];
 
 type ChatRequestMessage = {
@@ -34,12 +30,18 @@ const isRetryableModelError = (
 
 export async function POST(req: Request) {
   try {
+    // ✅ Client moved inside handler
+    const { default: OpenAI } = await import("openai");
+    const client = new OpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.OPENROUTER_API_KEY,
+    });
+
     const { messages = [] } = (await req.json()) as ChatRequestBody;
     const lastMessage = messages[messages.length - 1]?.content || "";
 
     const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-    //  Search condition
     const shouldSearch = true;
 
     let results: SearchResult[] = [];
@@ -53,13 +55,13 @@ export async function POST(req: Request) {
       }
     }
 
-    //  Build context
+    // Build context
     const context =
       results.length > 0
         ? results.map((r, i) => `[${i + 1}] ${r.content}`).join("\n\n")
         : "No relevant information found.";
 
-    //  System prompt
+    // System prompt
     const systemPrompt = `You are a helpful assistant.
 
 STRICT RULES:
@@ -76,7 +78,7 @@ ${context}`;
       ...messages,
     ];
 
-    //  Try models one by one
+    // Try models one by one
     for (const model of FREE_MODELS) {
       try {
         console.log("Trying model:", model);
@@ -88,7 +90,7 @@ ${context}`;
 
         const answer = response.choices[0]?.message?.content || "No response";
 
-        console.log(` Responded using: ${model}`);
+        console.log(`Responded using: ${model}`);
 
         return Response.json({ message: answer });
       } catch (err) {
@@ -104,7 +106,7 @@ ${context}`;
       }
     }
 
-    //  All models failed
+    // All models failed
     console.error("All models failed:", lastError);
 
     return Response.json(
@@ -112,14 +114,14 @@ ${context}`;
         message:
           "All models are busy or unavailable. Please try again in a moment.",
       },
-      { status: 429 },
+      { status: 429 }
     );
   } catch (error) {
     console.error("Server error:", error);
 
     return Response.json(
       { message: "Something went wrong. Please try again." },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
