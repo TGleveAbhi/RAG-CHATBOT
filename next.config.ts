@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdfjs-dist"],
+const nextConfig = {
+  serverExternalPackages: [
+    "@xenova/transformers",
+    "sharp",
+    "onnxruntime-node",
+    "unpdf",
+  ],
+  turbopack: {},
 };
 
 export default nextConfig;
